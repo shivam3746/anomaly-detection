@@ -8,12 +8,12 @@ import random
 import time
 import threading
 
-# --- Custom Exception for Data Stream ---
+
 class DataStreamException(Exception):
     """Custom exception to handle invalid data in the stream."""
     pass
 
-# --- Data Validation ---
+
 def validate_data(value):
     """
     Validating incoming data to ensure it is a numeric type.
@@ -31,7 +31,7 @@ def validate_data(value):
         raise DataStreamException(f"Invalid data: {value} is not a numeric type.")
     return True
 
-# --- Data Stream Simulation ---
+
 def data_stream_simulation():
     """
     Simulates a real-time data stream with seasonality, noise, and random anomalies.
@@ -45,26 +45,25 @@ def data_stream_simulation():
     t = 0
     while True:
         try:
-            # Generates sinusoidal seasonal pattern with added random noise
+            # Generation of sinusoidal seasonal pattern with added random noise
             seasonality = 10 * np.sin(2 * np.pi * t / 50)
             noise = np.random.normal(0, 2)
             value = 50 + seasonality + noise
 
             # Randomly injecting anomalies (5% chance)
             if random.random() < 0.05:
-                value += np.random.normal(30, 10)  # Inject anomaly
+                value += np.random.normal(30, 10)
 
-            # Validating data to ensure correctness
             validate_data(value)
 
             t += 1
             yield value
-            time.sleep(0.1)  # Simulate real-time delay
+            # NOTE-: Here simulating real-time delay
+            time.sleep(0.1) 
         except DataStreamException as e:
             print(f"Error in data stream: {e}")
             continue
 
-# --- Rolling Z-Score Anomaly Detector ---
 class RollingZScoreAnomalyDetector:
     """
     Anomaly detection using a Z-score-based approach with a rolling window.
@@ -99,25 +98,21 @@ class RollingZScoreAnomalyDetector:
             # Validation of value before processing
             validate_data(value)
 
-            # Addition of the new value to the window
             self.window.append(value)
 
             # Ensuring we have enough data points to calculate Z-score
             if len(self.window) < 2:
-                return False  # Not enough data for an anomaly check
+                return False
 
             # Calculation of the rolling mean and standard deviation
             mean = np.mean(self.window)
             std_dev = np.std(self.window)
 
-            # Handling of potential division by zero in standard deviation
             if std_dev == 0:
                 std_dev = 1e-6
 
-            # Computation of Z-score
             z_score = (value - mean) / std_dev
 
-            # Returning True if the Z-score exceeds the anomaly threshold
             return abs(z_score) > self.threshold
         except DataStreamException as e:
             print(f"Error in anomaly detection: {e}")
@@ -138,7 +133,7 @@ app.layout = html.Div([
     dcc.Interval(id='graph-update', interval=500, n_intervals=0)
 ])
 
-# --- Callback for Real-time Graph Updates ---
+# --- Callback function for Real-time Graph Updates ---
 @app.callback(Output('live-graph', 'figure'), [Input('graph-update', 'n_intervals')])
 def update_graph(n):
     """
@@ -152,7 +147,7 @@ def update_graph(n):
     """
     global data_x, data_y, anomaly_x, anomaly_y
 
-    for _ in range(5):  # Update with multiple points per callback for smoother animation
+    for _ in range(5):
         idx = len(data_x) + 1
         value = next(data_stream_simulation())
 
@@ -165,7 +160,7 @@ def update_graph(n):
             anomaly_x.append(idx)
             anomaly_y.append(value)
 
-    # Defining traces
+    # Defining traces for visualization
     data_trace = go.Scatter(x=list(data_x), y=list(data_y), name="Data Stream", mode="lines")
     anomaly_trace = go.Scatter(x=anomaly_x, y=anomaly_y, name="Anomalies", mode="markers", marker=dict(color="red", size=10))
 
@@ -178,7 +173,6 @@ def update_graph(n):
         )
     }
 
-# --- Running the Dash App in a Separate Thread ---
 def run_dash_app():
     """
     Runs the Dash application in a separate thread to display real-time graph updates.
