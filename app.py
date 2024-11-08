@@ -7,6 +7,7 @@ import numpy as np
 import random
 import time
 import threading
+import queue
 
 
 class DataStreamException(Exception):
@@ -32,7 +33,8 @@ def validate_data(value):
     return True
 
 
-def data_stream_simulation():
+# --- Data Stream Simulation ---
+def data_stream_simulation(data_queue):
     """
     Simulates a real-time data stream with seasonality, noise, and random anomalies.
 
@@ -53,13 +55,14 @@ def data_stream_simulation():
             # Randomly injecting anomalies (5% chance)
             if random.random() < 0.05:
                 value += np.random.normal(30, 10)
-
+          
             validate_data(value)
 
+            data_queue.put(value)
+
             t += 1
-            yield value
             # NOTE-: Here simulating real-time delay
-            time.sleep(0.1) 
+            time.sleep(0.1)
         except DataStreamException as e:
             print(f"Error in data stream: {e}")
             continue
@@ -73,7 +76,7 @@ class RollingZScoreAnomalyDetector:
         threshold (float): Z-score threshold for anomaly detection.
         window (deque): Rolling window of recent data points.
     """
-    def __init__(self, window_size=30, threshold=3):
+    def __init__(self, window_size=30, threshold=3.5):
         """
         Initialization of the anomaly detector with a rolling window and Z-score threshold.
 
@@ -119,6 +122,7 @@ class RollingZScoreAnomalyDetector:
             return False
 
 # --- Initialization of Variables ---
+data_queue = queue.Queue()
 data_x = deque(maxlen=200)
 data_y = deque(maxlen=200)
 anomaly_x = []
@@ -133,34 +137,42 @@ app.layout = html.Div([
     dcc.Interval(id='graph-update', interval=500, n_intervals=0)
 ])
 
+
 # --- Callback function for Real-time Graph Updates ---
 @app.callback(Output('live-graph', 'figure'), [Input('graph-update', 'n_intervals')])
 def update_graph(n):
     """
-    Updates the graph in real time with data from the stream and detected anomalies.
+     Updates the graph in real time with data from the stream and detected anomalies.
 
-    Args:
-        n (int): The interval counter for updates.
+     Args:
+         n (int): The interval counter for updates.
 
-    Returns:
-        dict: The figure with updated traces for data stream and anomalies.
-    """
+     Returns:
+         dict: The figure with updated traces for data stream and anomalies.
+     """
     global data_x, data_y, anomaly_x, anomaly_y
 
-    for _ in range(5):
-        idx = len(data_x) + 1
-        value = next(data_stream_simulation())
+    for _ in range(5):  
+        if not data_queue.empty():
 
-        # Data points Update
-        data_x.append(idx)
-        data_y.append(value)
+            value = data_queue.get()
+            idx = len(data_x) + 1
 
-        # Detecting anomalies for visualizing
-        if detector.update_and_detect(value):
-            anomaly_x.append(idx)
-            anomaly_y.append(value)
+            # Updated data points
+            data_x.append(idx)
+            data_y.append(value)
 
-    # Defining traces for visualization
+            # Responsible for detection of anomalies
+            if detector.update_and_detect(value):
+                anomaly_x.append(idx)
+                anomaly_y.append(value)
+
+    # Keeping anomaly lists within recent bounds
+    if len(anomaly_x) > 200:
+        anomaly_x = anomaly_x[-200:]
+        anomaly_y = anomaly_y[-200:]
+
+    # NOTE-: Defining the traces here
     data_trace = go.Scatter(x=list(data_x), y=list(data_y), name="Data Stream", mode="lines")
     anomaly_trace = go.Scatter(x=anomaly_x, y=anomaly_y, name="Anomalies", mode="markers", marker=dict(color="red", size=10))
 
@@ -173,6 +185,11 @@ def update_graph(n):
         )
     }
 
+# --- Starting the Data Stream Simulation in a Separate Thread ---
+def start_data_stream():
+    data_stream_simulation(data_queue)
+
+
 def run_dash_app():
     """
     Runs the Dash application in a separate thread to display real-time graph updates.
@@ -182,6 +199,15 @@ def run_dash_app():
     app.run_server(debug=True, use_reloader=False)
 
 if __name__ == '__main__':
+
+    data_thread = threading.Thread(target=start_data_stream)
+    data_thread.daemon = True
+    data_thread.start()
+
     # Starting the Dash app in a separate thread to keep it non-blocking(asynchronous)
     dash_thread = threading.Thread(target=run_dash_app)
+    dash_thread.daemon = True
     dash_thread.start()
+
+    while True:
+        time.sleep(1)
