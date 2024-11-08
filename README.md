@@ -80,6 +80,7 @@ After installing the dependencies, start the application by running:
 
 ```bash
 python app.py
+```
 
 ## How to View the Visualization
 
