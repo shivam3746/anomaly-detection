@@ -12,6 +12,7 @@ This project implements a real-time anomaly detection and visualization system i
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Running the Program](#running-the-program)
+- [How to View the Visualization](#how-to-view-the-visualization)
 - [Project Structure](#project-structure)
 - [Customization](#customization)
 - [Troubleshooting](#troubleshooting)
