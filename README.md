@@ -81,3 +81,58 @@ After installing the dependencies, start the application by running:
 ```bash
 python app.py
 
+## How to View the Visualization
+
+1. Open your browser.
+2. Go to `http://127.0.0.1:8050` to view the real-time visualization.
+
+---
+
+## Project Structure
+
+- **app.py**: Main application script containing data stream simulation, anomaly detection, and real-time visualization.
+- **requirements.txt**: Lists all the dependencies required to run the project.
+
+---
+
+## Code Overview
+
+### Key Sections of the Code
+
+- **Data Stream Simulation**: Generates synthetic data with seasonal, random noise, and anomalies. The function `data_stream_simulation` iterates through data points, introducing a 0.1-second delay to simulate real-time data.
+  
+- **Anomaly Detection**: Uses the `RollingZScoreAnomalyDetector` class, which maintains a rolling window of recent data points to calculate mean and standard deviation. An anomaly is flagged when the Z-score exceeds a specified threshold.
+
+- **Real-Time Visualization**: Implemented with Dash, using a `dcc.Graph` component to display data and detected anomalies in real time. Data is updated every 500ms via `dcc.Interval`.
+
+---
+
+## Customization
+
+- **Adjusting Detection Sensitivity**:
+  - Modify `window_size` and `threshold` in `RollingZScoreAnomalyDetector` for tuning detection sensitivity.
+
+- **Changing Visualization Update Frequency**:
+  - Adjust the `dcc.Interval` property in the Dash app layout to control how frequently the graph updates.
+
+---
+
+## Troubleshooting
+
+- **"Error displaying widget"**: Ensure all dependencies are correctly installed, especially `dash` and `plotly`.
+  
+- **No Visualization on Terminal**: This code is designed for a web browser. Please ensure you are viewing `http://127.0.0.1:8050` in a supported browser.
+
+---
+
+## License
+
+This project is licensed under the MIT License.
+
+---
+
+## Contact
+
+For any issues or questions, feel free to open an issue on this repository.
+
+
